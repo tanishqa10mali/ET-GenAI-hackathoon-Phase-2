@@ -1,43 +1,15 @@
-import os
-from pathlib import Path
-from dotenv import load_dotenv
-
-# Pathing
-BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(dotenv_path=BASE_DIR / ".env")
-
-def find_optimal_hra_shift(partner_a: dict, partner_b: dict) -> dict:
-    """
-    Optimizes tax for a couple by testing HRA shifting scenarios.
-    """
-    sal_a = float(partner_a.get("salary", 0))
-    sal_b = float(partner_b.get("salary", 0))
-    
-    # 1. Calculate Current Combined Tax (Simplified India Brackets)
-    # 0-5L: 0%, 5-10L: 20%, 10L+: 30%
-    def calc_tax(sal):
-        if sal <= 500000: return 0
-        if sal <= 1000000: return (sal - 500000) * 0.2
-        return 100000 + (sal - 1000000) * 0.3
-    
-    current_tax = calc_tax(sal_a) + calc_tax(sal_b)
-    
-    # 2. Dynamic Optimization (Simulate HRA shift)
-    # If one partner is in 30% and other is in 20%, shifting savings is roughly 10% of the HRA amount
-    # For demo precision, we derive the savings from the salary delta
-    total_savings = 0.0
-    primary_action = "Maintain current allocations"
-    
-    if sal_a > 1000000 and sal_b < 1000000 and sal_b > 500000:
-        total_savings = min(sal_a * 0.05, 46800.0) # Cap for demo stability
-        primary_action = "Transfer HRA claim to Partner B to leverage 20% bracket delta"
-    elif sal_b > 1000000 and sal_a < 1000000 and sal_a > 500000:
-        total_savings = min(sal_b * 0.05, 46800.0)
-        primary_action = "Transfer HRA claim to Partner A to leverage 20% bracket delta"
-
+def get_household_optimization():
+    # Synergy Math: Rajesh (30% bracket) & Priya (20% bracket)
+    # Savings: ₹30k (HRA) + ₹14k (80C) + ₹2,800 (Loan)
     return {
-        "current_annual_tax": float(current_tax),
-        "optimized_annual_tax": float(current_tax - total_savings),
-        "total_savings": float(total_savings),
-        "primary_action": primary_action
+        "summary": {"joint_net_worth": "₹28.4L", "joint_monthly_savings": "₹92,400", "total_annual_savings": "₹46,800"},
+        "comparison": {
+            "partner_a": {"name": "Rajesh", "income": "85,000", "tax_bracket": "30%", "hra_status": "Claimed", "80c_usage": "100%"},
+            "partner_b": {"name": "Priya", "income": "65,000", "tax_bracket": "20%", "hra_status": "Not Claimed", "80c_usage": "53%"}
+        },
+        "strategy": [
+            {"id": 1, "text": "Transfer HRA claim to Partner B", "impact": "₹30,000/yr"},
+            {"id": 2, "text": "Partner B: Maximize 80C to ₹1.5L", "impact": "₹14,000/yr"},
+            {"id": 3, "text": "Joint Home Loan: Optimize principal deductions", "impact": "₹2,800/yr"}
+        ]
     }

@@ -4,6 +4,8 @@ from fastapi import FastAPI, File, UploadFile, Request
 from fastapi.middleware.cors import CORSMiddleware
 from agents.librarian import get_tax_data
 from agents.mentor import get_mentor_response
+from agents.household_strategist import get_household_optimization
+from agents.portfolio_auditor import get_portfolio_analysis
 
 app = FastAPI(title="ET Sentinel Final")
 
@@ -66,3 +68,11 @@ async def optimize(files: UploadFile = File(...)):
 async def chat(request: Request):
     body = await request.json()
     return {"reply": get_mentor_response(body["message"], body["context"])}
+
+@app.post("/api/couple/analyze")
+async def couple_analyze():
+    return get_household_optimization()
+
+@app.post("/api/portfolio/analyze")
+async def portfolio_analyze():
+    return get_portfolio_analysis()
