@@ -2,3 +2,7 @@ fastapi
 uvicorn
 llama-parse
 openai
+python-dotenv
+pydantic
+pdfplumber
+google-generativeai

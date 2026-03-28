@@ -1,39 +1,68 @@
-from fastapi import FastAPI
+import os
+import shutil
+from fastapi import FastAPI, File, UploadFile, Request
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from engines.tax_calculator import calculate_tax_liability
+from agents.librarian import get_tax_data
+from agents.mentor import get_mentor_response
 
-app = FastAPI(title="ET Sentinel Backend")
+app = FastAPI(title="ET Sentinel Final")
 
-# Setup CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-class OptimizeRequest(BaseModel):
-    salary: float
-    hra: float = 0.0
-    section_80c: float = 0.0
-
 @app.post("/api/optimize")
-async def optimize(request: OptimizeRequest):
-    # Calculate real tax metrics using our engine
-    tax_metrics = calculate_tax_liability(
-        salary=request.salary, 
-        hra=request.hra, 
-        section_80c=request.section_80c
-    )
+async def optimize(files: UploadFile = File(...)): 
+    os.makedirs("data", exist_ok=True)
+    temp_path = f"data/{files.filename}"
+    with open(temp_path, "wb") as buffer:
+        shutil.copyfileobj(files.file, buffer)
+        
+    # 1. Get Synchronized Data [cite: 522, 680]
+    data = get_tax_data(temp_path)
+    salary = float(data.get("salary", 0))
+    tax = float(data.get("tax_paid", 0))
+    deductions = float(data.get("deductions_80c", 0))
+
+    if salary <= 0:
+        return {"household_summary": {"total_net_worth": "₹0L", "health_score": "0/10"}, "tax_optimization": {"potential_savings": "₹0"}}
+
+    # 2. Institutional Calculations [cite: 175, 419, 678]
+    h_score = round((min(deductions, 150000) / 150000) * 10, 1)
     
-    # Returns the dynamically calculated tax optimization and static portfolio analysis
+    # NEW: DYNAMIC HOUSEHOLD ALIGNMENT logic 
+    # Penalizes the synergy score if tax leakage is high relative to income
+    leakage_ratio = tax / salary if salary > 0 else 0
+    dynamic_alignment = int(100 - (min(leakage_ratio * 200, 40))) 
+    
+    # Wealth Trajectory Array: 12% CAGR Growth of tax leakage [cite: 719]
+    chart_data = [int(tax * (1.12 ** y)) for y in [0, 5, 10, 15, 20]]
+    
+    # Standardize the Ultimate Gain string for reuse [cite: 722]
+    ultimate_gain = f"₹{chart_data[-1] / 10000000:.1f}Cr" if chart_data[-1] > 10000000 else f"₹{chart_data[-1] / 100000:.1f}L"
+    
     return {
-        "tax_optimization": tax_metrics,
-        "portfolio_analysis": {
-            "total_aum": "₹16.2L",
-            "leakage_detected": "₹2.8L",
-            "overlap_percentage": "45%"
-        }
+        "household_summary": {
+            "total_net_worth": f"₹{salary * 1.85 / 100000:.1f}L", 
+            "monthly_savings": f"₹{int((salary/12)*0.28):,}",
+            "health_score": f"{h_score}/10",
+            # FEATURE 1: HOUSEHOLD ALIGNMENT IS NOW DYNAMIC [cite: 720, 729]
+            "household_alignment": dynamic_alignment 
+        },
+        "tax_optimization": {
+            "potential_savings": f"₹{int(tax):,}",
+            "ultimate_gain": ultimate_gain,
+            "chart_data": chart_data,
+            # FEATURE 2: REMOVED "" EMPTY GAP [cite: 717, 718]
+            "primary_action": f"Redirect ₹{int(tax):,} leakage into {ultimate_gain} lifetime wealth."
+        },
+        "raw_context": data
     }
+
+@app.post("/api/chat")
+async def chat(request: Request):
+    body = await request.json()
+    return {"reply": get_mentor_response(body["message"], body["context"])}
