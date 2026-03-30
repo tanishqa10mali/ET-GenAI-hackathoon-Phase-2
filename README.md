@@ -7,6 +7,7 @@ ET Sentinel converts a user's uploaded Form 16 PDF into a personalised financial
 **Live Prototype:** https://etgen-85qg.vercel.app/
 
 ---
+Note: This repository reflects the state of the project as of the initial submission (Friday). The final deployed version with updated architecture (24-field Form 16 extraction, corrected tax slab logic, annuity-based wealth projection) is live at vercel link above given and the full updated source code is available at https://github.com/narendramulik065-ux/etgen.git "
 
 ## The Problem
 
